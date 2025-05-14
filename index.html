@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>百人一首クイズ</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2em; }
+    .card {
+      border: 1px solid #ccc; padding: 1em; margin: 1em auto;
+      width: 80%; max-width: 600px;
+      border-radius: 10px; box-shadow: 2px 2px 5px #aaa;
+    }
+    button { margin: 0.5em; padding: 0.5em 1em; font-size: 1em; }
+    #score { font-weight: bold; margin-bottom: 1em; }
+    #history {
+      margin-top: 2em; text-align: left;
+      max-width: 600px; margin-left: auto; margin-right: auto;
+    }
+    #history ul { padding-left: 1em; }
+  </style>
+</head>
+<body>
+  <h1>百人一首クイズ</h1>
+  <div class="card">
+    <div id="score">スコア：0 / 0</div>
+    <h2 id="kami">上の句がここに表示されます</h2>
+    <div id="choices"></div>
+    <p id="result"></p>
+    <button onclick="nextQuestion()">次の問題</button>
+  </div>
+  <div id="history">
+    <h3>履歴</h3>
+    <ul id="historyList"></ul>
+  </div>
+
+  <script>
+    const fullPoems = [
+      ["秋の田の かりほの庵の 苫をあらみ", "わが衣手は 露にぬれつつ"],
+      ["春過ぎて 夏来にけらし 白妙の", "衣ほすてふ 天の香具山"],
+      ["あしびきの 山鳥の尾の しだり尾の", "ながながし夜を ひとりかも寝む"],
+      ["田子の浦に うち出でて見れば 白妙の", "富士の高嶺に 雪は降りつつ"]
+    ];
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    const quizData = fullPoems.map(([kami, shimo], index, arr) => {
+      const otherShimos = arr.filter(([_, s]) => s !== shimo).map(([_, s]) => s);
+      const choices = shuffle([shimo, ...shuffle(otherShimos).slice(0, 2)]);
+      return { kami, shimo, choices };
+    });
+
+    let currentIndex = 0;
+    let score = 0;
+    let total = 0;
+    let questions = [];
+
+    function startQuiz() {
+      questions = shuffle([...quizData]);
+      currentIndex = 0;
+      score = 0;
+      total = 0;
+      document.getElementById("historyList").innerHTML = "";
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = questions[currentIndex];
+      const otherShimos = fullPoems.filter(([_, s]) => s !== q.shimo).map(([_, s]) => s);
+      q.choices = shuffle([q.shimo, ...shuffle(otherShimos).slice(0, 2)]);
+
+      document.getElementById("kami").textContent = q.kami;
+      const choicesDiv = document.getElementById("choices");
+      choicesDiv.innerHTML = "";
+      q.choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.textContent = choice;
+        btn.onclick = () => checkAnswer(choice, q);
+        choicesDiv.appendChild(btn);
+      });
+      document.getElementById("result").textContent = "";
+      updateScore();
+    }
+
+    function checkAnswer(selected, q) {
+      const result = document.getElementById("result");
+      total++;
+      const correct = q.shimo;
+      const isCorrect = selected === correct;
+      if (isCorrect) {
+        result.textContent = "正解！";
+        result.style.color = "green";
+        score++;
+      } else {
+        result.textContent = "不正解… 正解は：" + correct;
+        result.style.color = "red";
+      }
+      updateScore();
+      addToHistory(q.kami, selected, correct, isCorrect);
+    }
+
+    function updateScore() {
+      document.getElementById("score").textContent = `スコア：${score} / ${total}`;
+    }
+
+    function addToHistory(kami, selected, correct, isCorrect) {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${isCorrect ? '○' : '×'}</strong> 上の句：「${kami}」<br>あなたの答え：「${selected}」<br>正解：「${correct}」`;
+      document.getElementById("historyList").prepend(li);
+    }
+
+    function nextQuestion() {
+      currentIndex = (currentIndex + 1) % questions.length;
+      showQuestion();
+    }
+
+    startQuiz();
+  </script>
+</body>
+</html>
